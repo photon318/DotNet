@@ -19,6 +19,7 @@ namespace PQueues
 
 
             // Assign
+            const int count = 10000;
 
             var list = new List<int>();
             var tasks = new List<Task>();
@@ -32,8 +33,35 @@ namespace PQueues
 
                 tasks.Add(Task.Factory.StartNew(() => list.Add(number), TaskCreationOptions.PreferFairness));
             }
-
+            /*
+            while (list.Count > count)
+            {
+                //Console.WriteLine(listserial.Count);
+            };
+            */
             Task.WhenAll(tasks);
+
+            int prev = 0;
+            int prevcnt = 0;
+            foreach (int it in list)
+            {
+                if (prev == 0)
+                {
+                    prev = it;
+                }
+                else
+                {
+                    if (it - 1 != prev)
+                        ++prevcnt;
+
+                    prev = it;
+                }
+                Console.Write($"{it} ");
+            }
+            Console.WriteLine($"");
+            Console.WriteLine($"{prevcnt}");
+
+            Console.WriteLine($"Sequence: {list.Count} ");
             Console.WriteLine($"Sequence: {range.SequenceEqual(list)} ");
 
             // Assert
@@ -44,23 +72,28 @@ namespace PQueues
             var rangeserial = Enumerable.Range(0, 10000);
 
             // Act
-
+            int t = 0;
             foreach (var number in rangeserial)
             {
                 tasksserial.Add(queueserial.Enqueue(() => listserial.Add(number)));
+                t = number;
             }
 
+            Console.WriteLine(listserial.Count);
             Task.WhenAll(tasksserial);
+            Console.WriteLine(t);
 
+            while (listserial.Count != count) {
+                //Console.WriteLine(listserial.Count);
+            };
             // Assert
 
-            //Console.WriteLine($"Sequence: {rangeserial.SequenceEqual(listserial)} ");
+            Console.WriteLine($"Sequence: {rangeserial.SequenceEqual(listserial)} ");
 
-           // Task t = new Task.Factory.StartNew();
+            // Task t = new Task.Factory.StartNew();
 
 
 
-            const int count = 10000;
             var queuemulti = new SerialQueue();
             var listmulti = new List<int>();
 
@@ -77,11 +110,12 @@ namespace PQueues
 
             //done = true;
 
-           // while (list.Count != count) { };
+            while (listmulti.Count != count) { };
 
             // Assert
 
-            //Console.WriteLine($"Sequence: {listmulti.SequenceEqual(Enumerable.Range(0, count))}");
+            Console.WriteLine($"Sequence: {listmulti.SequenceEqual(Enumerable.Range(0, count))}");
+            Console.Read();
         }
     }
 }
