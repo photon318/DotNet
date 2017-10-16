@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,34 +12,105 @@ namespace PQueues
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("Welcome to parallel queue processing tests.");
+            Console.WriteLine("Parallel queue processing tests.");
             Console.WriteLine($"Running on {Environment.ProcessorCount} CPU's.");
 
+            // Samples initialization 
+            const int PARSE_SAMPLES = 100000;
 
-            // FIFO test with tasks
+            var parsesource = new List<string>();
+            for (int b = 0; b < PARSE_SAMPLES; b++)
+                parsesource.Add($"{b}|dasdasd|ddwdadsada|dasdasds|dsadas|dasdasdasd|dasdadasdasdsadasdadasd|dasdasdsad|dadasdsadasd|dsada|dsad|ds0adsadsada|sadsadsad|322312|sasas|123131231312312|dsds|dasdsadsdsada|dadasdasdasdas|dasdsadsadads|sdasd|dasd|");
+
+            Stopwatch timer = new Stopwatch();
+            List<string[]> parse_results = new List<string[]>();
 
 
+            // Singlethread base test
+            timer.Start();
+            foreach (string line in parsesource)
+                parse_results.Add(line.Split('|')); 
+
+            timer.Stop();
+
+            var sequence = parse_results.Select(x => x[0]).OfType<int>().ToList();
+            //var int_seq = from parsed in parse_results select parsed[0].OfType<int>().ToList();
+            Console.WriteLine($"C:{parse_results.Count} Base split: {timer.ElapsedMilliseconds} ms. Sequence: {sequence.SequenceEqual(sequence)}");
+
+
+
+            var parce_tasks = new List<Task>();
+            parse_results.Clear();
+
+            timer.Restart();
+            foreach (string line in parsesource)
+            {
+                parce_tasks.Add(Task.Factory.StartNew(() => parse_results.Add(line.Split('|')), TaskCreationOptions.PreferFairness));
+            }
+
+            Task.WaitAll(parce_tasks.ToArray());
+
+
+            timer.Stop();
+
+            sequence = parse_results.Select(x => x[0]).OfType<int>().ToList();
+            Console.WriteLine($"C:{parse_results.Count} Multithread split: {timer.ElapsedMilliseconds} ms. Sequence: {sequence.SequenceEqual(sequence)}");
+
+            List<Task> tasks_serial = new List<Task>();
+            parse_results.Clear();
+            SerialQueue queue_serial_parse = new SerialQueue();
+
+
+            timer.Restart();
+
+            foreach (string line in parsesource)
+            {
+                tasks_serial.Add(queue_serial_parse.Enqueue(() => parse_results.Add(line.Split('|'))));
+            }
+
+            Task.WaitAll(tasks_serial.ToArray());
+
+
+            timer.Stop();
+
+            sequence = parse_results.Select(x => x[0]).OfType<int>().ToList();
+
+            Console.WriteLine($"C:{parse_results.Count} Serial split: {timer.ElapsedMilliseconds} ms. Sequence: {sequence.SequenceEqual(sequence)}");
+
+            SerialQueue queue_asynch_parse = new SerialQueue();
+            parse_results.Clear();
+
+            timer.Restart();
+
+            foreach (string line in parsesource)
+            {
+                Task.Run(() => {
+                    queue_asynch_parse.Enqueue(() => parse_results.Add(line.Split('|')));
+                });
+            }
+
+            while (parse_results.Count < PARSE_SAMPLES)
+            {
+                //Thread.Sleep(50);//Console.WriteLine(listserial.Count);
+            };
+            timer.Stop();
+
+            sequence = parse_results.Select(x => x[0]).OfType<int>().ToList();
+
+            Console.WriteLine($"C:{parse_results.Count} Multi serial split: {timer.ElapsedMilliseconds} ms. Sequence: {sequence.SequenceEqual(sequence)}");
+            /*
             // Assign
             const int count = 10000;
 
             var list = new List<int>();
             var tasks = new List<Task>();
             var range = Enumerable.Range(0, 1000);
- 
-            // Act
 
             foreach (var number in range)
             {
-                //Console.Write($"{number} ");
-
                 tasks.Add(Task.Factory.StartNew(() => list.Add(number), TaskCreationOptions.PreferFairness));
             }
-            /*
-            while (list.Count > count)
-            {
-                //Console.WriteLine(listserial.Count);
-            };
-            */
+
             Task.WhenAll(tasks);
 
             int prev = 0;
@@ -116,6 +188,7 @@ namespace PQueues
 
             Console.WriteLine($"Sequence: {listmulti.SequenceEqual(Enumerable.Range(0, count))}");
             Console.Read();
+            */
         }
     }
 }
